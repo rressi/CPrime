@@ -1,7 +1,18 @@
 import cython
 from cython.parallel cimport parallel, prange
 from libc.stdlib cimport calloc, free
-from os import cpu_count
+
+
+# cpu_count, A method to count the number of CPUs:
+try:
+    from os import cpu_count
+except ImportError:
+    try:
+        from multiprocessing import cpu_count
+    except ImportError:
+        def cpu_count():
+            return 1  # Multi-thread disabled
+
 
 ctypedef long long Long
 ctypedef enum Result:

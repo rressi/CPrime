@@ -56,6 +56,7 @@ timeit.timeit('import CPrime; CPrime.free_run(10**10)', number=1)
 | CPU | OS  | Python | C compiler | 10 ^ 9 | 10 ^ 10 |
 | --- | --- | ------ | ---------- | ------ | ------- |
 | Intel i5-3335S @2.7GHz, 4 cores | Windows 10 | Python 3.4.3 | msvc 10 | 2.778s | 28.043s |
-| Intel i5-3335S @2.7GHz, 4 cores | OSX Yosemite 10.4 | Python 3.4.1 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 5.02s | 52.068s |
+| Intel i5-3335S @2.7GHz, 4 cores | OSX Yosemite 10.4 | Python 3.4.1 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 5.134s | 53.182s |
+| Intel i5-3335S @2.7GHz, 4 cores | OSX Yosemite 10.4 | Python 2.7.2 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 5.005s | 51.906s |
 | Intel i5-3335S @2.7GHz, 4 cores | Ubuntu 12.04 LTS (virtualized inside OSX Yosemite 10.4 ) | Python 3.4.0 | gcc 4.8.4 | 4.068s | 39.704 |
 | Intel i5-3335S @2.7GHz, 4 cores | Ubuntu 14.04 (virtualized inside OSX Yosemite 10.4 ) | Python 3.4.3 | gcc 4.9.2 | 3.131 | 31.251 |
