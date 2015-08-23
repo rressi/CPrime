@@ -18,235 +18,49 @@ ctypedef enum Bool:
 DEF BLOCK_SIZE = (10 ** 6)
 cdef Long MAX_THREADS = cpu_count()
 
+# ------------------------------------------------------------------------------
 
-cdef Long _log10(Long x) nogil:
-    cdef:
-        Long y
-        Long z
-    y = 0
-    z = 10
-    while z <= x:
-        z *= 10
-        y += 1
-    return y
+def prime_numbers(Long number,
+                  Long max_threads=MAX_THREADS):
+    """Calculates all prime numbers that are less than the passed one.
 
-def _raise_error(Result result):
-    """Converts an error code to a Python exception."""
-    if result == MEMORY_ERROR:
-        raise MemoryError()
-    elif result == STOP_ITERATION:
-        raise StopIteration()
-    elif result == VALUE_ERROR:
-        raise ValueError()
+    :param number: the maximum number
 
-ctypedef struct _Task:
-    # A task to be executed to partially calculate prime numbers.
-    Long x_min         # First number to be tested.
-    Long x_max         # Last number (exclusive) to be tested.
-    Long* begin        # Beginning of the buffer of found results.
-    Long* end          # End (exclusive) of the buffer of found results.
-    char* cache        # An internal cache containing a boolean for each tested
-                       # number (range [x_min, x_max)). The boolean is set to true
-                       # when at least one dividend have been found.
-    Long last_cleared  # Position of the last cleared element in the cache
+    :param max_threads: the maximum number of threads that can be spared
+    concurrently. If not passed number of current CPU cores is used.
 
-cdef void _task_free(_Task *self) nogil:
-    free(self.begin)
-    self.begin = NULL
-    self.end = NULL
-    self.cache = NULL
-
-@cython.cdivision(True)
-cdef Result _task_alloc(_Task *self) nogil:
-    """ Allocates memory necessary tu run the task.
-
-    :param self: the task.
-    :return:
-    - SUCCESS on success
-    - MEMORY_ERROR on allocation failure
-    """
-    cdef:
-        Long block_size
-        Long max_results
-        Long num_bytes
-
-    # Performs one single allocation for the two C arrays to be allocated:
-    # - an array containing at most (x_max - x_min) / log10(x_max - x_min) results
-    # - an array containing (x_max - x_min) boolean flags.
-
-    block_size = self.x_max - self.x_min
-    max_results = block_size // _log10(block_size)
-
-    num_bytes = max_results * sizeof(Long)
-    num_bytes += block_size * sizeof(char)
-    self.begin = <Long *>calloc(1, <size_t>num_bytes)
-    if not self.begin:
-        return MEMORY_ERROR
-    self.end = self.begin
-    self.cache = <char *>(self.begin + max_results)
-    self.last_cleared = 0
-
-    return SUCCESS
-
-cdef inline Bool _task_is_prime(const _Task *self, Long x) nogil:
-    """Reads from task's cache if X can be a prime number.
-
-    The task must have been executed before and the execution should
-    have covered also X: x_min <= x < x_max.
-    """
-    if <Bool>(self.cache[x - self.x_min]):
-        return FALSE
-    else:
-        return TRUE
-
-@cython.cdivision(True)
-cdef inline Result _task_clear_products(_Task *self,
-                                        Long x) nogil:
-    """Set cache cells of products of X to true where x is a prime number.
-
-    This method works only if have already been called with all prime numbers
-    that are smaller than X.
-    """
-    cdef:
-        Long y
-
-    # Finds the first product of x to be cleared:
-    y = max(x * x,                              # First one from itself
-            self.x_min + x - (self.x_min % x))  # First one in the target range
-    if y >= self.x_max:
-        return STOP_ITERATION  # No more primes to be tested by the caller.
-
-    # This is the most performance critical loop of the algorithm, as you can see
-    # there are no expensive operations here, just sums and vector assignments.
-    while y < self.x_max:
-        self.cache[y - self.x_min] = TRUE  # X is dividend of Y
-        y += x
-    return SUCCESS
-
-cdef inline void _task_push_back(_Task *self, Long x) nogil:
-    """Saves one prime number to the result's vector.
-
-    Prime numbers are saved in a strictly ordered manner.
-
-    :param x: one prime number.
-    """
-    self.end[0] = x
-    self.end += 1
-
-cdef void _task_execute(_Task *self, const _Task *source) nogil:
-    """Executes one task."""
-    cdef:
-        Long x_max
-        Long* src_it
-        Long* src_end
-        Long y
-        Long x
-
-    x_max = 0
-    while x_max < self.x_max:  # if self == source we need more loops.
-        x_max = self.x_max
-
-        # A: uses prime numbers from source to mark their products as non primes:
-        src_it = source.begin + self.last_cleared
-        src_end = source.end
-        if src_it < src_end:
-            while src_it < src_end:
-                y = src_it[0]
-                if STOP_ITERATION == _task_clear_products(self, y):
-                    break  # Out of bound reached.
-                src_it += 1
-            self.last_cleared = src_it - source.begin
-
-            # On first execution we need more loops:
-            if source == self:
-                x_max = min(x_max, (y * y))
-
-        # B: all elements [x_min, x_max) untouched by step A are prime numbers:
-        x = self.x_min
-        if self.begin < self.end:
-            x = 2 + self.end[-1]  # Continues from previous iteration
-        else:
-            x += (1 - (x % 2))  # If X is even, moves x to the next odd number
-        while x < x_max:
-            if _task_is_prime(self, x):
-                _task_push_back(self, x)
-            x += 2  # Evaluates only odd numbers
-
-cdef Result _task_execute_first(_Task *root_task) nogil:
-    """
-    To execute task[0] we need to insert the very first prime numbers
-    manually, than the real execution can happen.
-
-    The task's range [x_min, x_max) is supposed to start form zero.
-
-    :param root_task: the task to be executed.
-
-    :return:
-    - SUCCESS on success.
-    - MEMORY_ERROR if a memory allocation failure happened.
+    :return: a strictly sorted sequence of prime numbers.
     """
     cdef:
         Result result
-        Long x
-        Long i
-
-    # Allocates memory:
-    result = _task_alloc(root_task)
+    # Creates and return a prime number generator:
+    generator = _PrimeGenerator()
+    result = generator.create_tasks(number, max_threads)
     if result != SUCCESS:
-        return MEMORY_ERROR
+        _raise_error(result)  # Failure.
 
-    # Manually inserts first primes:
-    _task_push_back(root_task, 2)
-    _task_push_back(root_task, 3)
-    _task_push_back(root_task, 5)
-    _task_push_back(root_task, 7)
+    return generator  # Success.
 
-    # Executes the task, it should have several steps that will find
-    # prime numbers exponentially: 7 -> 49 -> 2401 ...
-    _task_execute(root_task, root_task)
-    return SUCCESS
 
-cdef Result _task_execute_group(_Task *task_it,
-                                _Task *task_end,
-                                const _Task *root_task,
-                                Long max_threads) nogil:
-    """
-    After the task[0] have been executed, we can use prime numbers from its
-    execution to find out prime number for following tasks.
+def free_run(Long number, Long max_threads=MAX_THREADS):
+    """This function executes generation of prime numbers in a purely native
+    internal loop in order to measure the speed of our generator.
 
-    It works up to task[0].x_max ** 2. Up to BLOCK_SIZE ** 2 that is in
-    actual implementation 10 ** 12.
+    :param number: the maximum number
 
-    The good think is that the following tasks can be performed in parallel
-    because they have no inter dependencies.
-
-    :param task_it: begin of the group of tasks to be executed in parallel.
-    :param task_end: end of the group of tasks to be executed in parallel.
-    :param root_task: the root task providing needed prime numbers.
-    :param max_threads: maximum number of threads to be used at once.
-
-    :return:
-    - SUCCESS on success.
-    - MEMORY_ERROR if a memory allocation failure happened.
+    :param max_threads: the maximum number of threads that can be spared
+    concurrently. If not passed number of current CPU cores is used.
     """
     cdef:
-        Long num_threads
-        Long num_failures  # Used to count memory allocation failures.
-        Long i
+        _PrimeGenerator seq
+    seq = prime_numbers(number=number,
+                        max_threads=max_threads)
+    with nogil:
+        # Our free run:
+        while seq.next() >= 0:
+            pass
 
-    num_threads = min(max_threads,
-                      <Long>(task_end - task_it))
-    num_failures = 0
-    with parallel(num_threads=num_threads):
-        for i in prange(num_threads):
-            if _task_alloc(task_it + i) == SUCCESS:
-                _task_execute(task_it + i, root_task)
-            else:
-                num_failures += 1
-    if num_failures:
-        return MEMORY_ERROR
-    return SUCCESS
-
+# ------------------------------------------------------------------------------
 
 cdef class _PrimeGenerator:
     """
@@ -412,43 +226,242 @@ cdef class _PrimeGenerator:
 
         return result  # Success
 
+# ------------------------------------------------------------------------------
 
-def prime_numbers(Long number,
-                  Long max_threads=MAX_THREADS):
-    """Calculates all prime numbers that are less than the passed one.
+ctypedef struct _Task:
+    # A task to be executed to partially calculate prime numbers.
+    Long x_min         # First number to be tested.
+    Long x_max         # Last number (exclusive) to be tested.
+    Long* begin        # Beginning of the buffer of found results.
+    Long* end          # End (exclusive) of the buffer of found results.
+    char* cache        # An internal cache containing a boolean for each tested
+                       # number (range [x_min, x_max)). The boolean is set to true
+                       # when at least one dividend have been found.
+    Long last_cleared  # Position of the last cleared element in the cache
 
-    :param number: the maximum number
 
-    :param max_threads: the maximum number of threads that can be spared
-    concurrently. If not passed number of current CPU cores is used.
+cdef Result _task_execute_first(_Task *root_task) nogil:
+    """
+    To execute task[0] we need to insert the very first prime numbers
+    manually, than the real execution can happen.
 
-    :return: a strictly sorted sequence of prime numbers.
+    The task's range [x_min, x_max) is supposed to start form zero.
+
+    :param root_task: the task to be executed.
+
+    :return:
+    - SUCCESS on success.
+    - MEMORY_ERROR if a memory allocation failure happened.
     """
     cdef:
         Result result
-    # Creates and return a prime number generator:
-    generator = _PrimeGenerator()
-    result = generator.create_tasks(number, max_threads)
+        Long x
+        Long i
+
+    # Allocates memory:
+    result = _task_alloc(root_task)
     if result != SUCCESS:
-        _raise_error(result)  # Failure.
+        return MEMORY_ERROR
 
-    return generator  # Success.
+    # Manually inserts first primes:
+    _task_push_back(root_task, 2)
+    _task_push_back(root_task, 3)
+    _task_push_back(root_task, 5)
+    _task_push_back(root_task, 7)
+
+    # Executes the task, it should have several steps that will find
+    # prime numbers exponentially: 7 -> 49 -> 2401 ...
+    _task_execute(root_task, root_task)
+    return SUCCESS
 
 
-def free_run(Long number, Long max_threads=MAX_THREADS):
-    """This function executes generation of prime numbers in a purely native
-    internal loop in order to measure the speed of our generator.
+cdef Result _task_execute_group(_Task *task_it,
+                                _Task *task_end,
+                                const _Task *root_task,
+                                Long max_threads) nogil:
+    """
+    After the task[0] have been executed, we can use prime numbers from its
+    execution to find out prime number for following tasks.
 
-    :param number: the maximum number
+    It works up to task[0].x_max ** 2. Up to BLOCK_SIZE ** 2 that is in
+    actual implementation 10 ** 12.
 
-    :param max_threads: the maximum number of threads that can be spared
-    concurrently. If not passed number of current CPU cores is used.
+    The good think is that the following tasks can be performed in parallel
+    because they have no inter dependencies.
+
+    :param task_it: begin of the group of tasks to be executed in parallel.
+    :param task_end: end of the group of tasks to be executed in parallel.
+    :param root_task: the root task providing needed prime numbers.
+    :param max_threads: maximum number of threads to be used at once.
+
+    :return:
+    - SUCCESS on success.
+    - MEMORY_ERROR if a memory allocation failure happened.
     """
     cdef:
-        _PrimeGenerator seq
-    seq = prime_numbers(number=number,
-                        max_threads=max_threads)
-    with nogil:
-        # Our free run:
-        while seq.next() >= 0:
-            pass
+        Long num_threads
+        Long num_failures  # Used to count memory allocation failures.
+        Long i
+
+    num_threads = min(max_threads,
+                      <Long>(task_end - task_it))
+    num_failures = 0
+    with parallel(num_threads=num_threads):
+        for i in prange(num_threads):
+            if _task_alloc(task_it + i) == SUCCESS:
+                _task_execute(task_it + i, root_task)
+            else:
+                num_failures += 1
+    if num_failures:
+        return MEMORY_ERROR
+    return SUCCESS
+
+
+@cython.cdivision(True)
+cdef Result _task_alloc(_Task *self) nogil:
+    """ Allocates memory necessary tu run the task.
+
+    :param self: the task.
+    :return:
+    - SUCCESS on success
+    - MEMORY_ERROR on allocation failure
+    """
+    cdef:
+        Long block_size
+        Long max_results
+        Long num_bytes
+
+    # Performs one single allocation for the two C arrays to be allocated:
+    # - an array containing at most (x_max - x_min) / log10(x_max - x_min) results
+    # - an array containing (x_max - x_min) boolean flags.
+
+    block_size = self.x_max - self.x_min
+    max_results = block_size // _log10(block_size)
+
+    num_bytes = max_results * sizeof(Long)
+    num_bytes += block_size * sizeof(char)
+    self.begin = <Long *>calloc(1, <size_t>num_bytes)
+    if not self.begin:
+        return MEMORY_ERROR
+    self.end = self.begin
+    self.cache = <char *>(self.begin + max_results)
+    self.last_cleared = 0
+
+    return SUCCESS
+
+
+cdef void _task_free(_Task *self) nogil:
+    free(self.begin)
+    self.begin = NULL
+    self.end = NULL
+    self.cache = NULL
+
+
+cdef inline Bool _task_is_prime(const _Task *self, Long x) nogil:
+    """Reads from task's cache if X can be a prime number.
+
+    The task must have been executed before and the execution should
+    have covered also X: x_min <= x < x_max.
+    """
+    if <Bool>(self.cache[x - self.x_min]):
+        return FALSE
+    else:
+        return TRUE
+
+
+@cython.cdivision(True)
+cdef inline Result _task_clear_products(_Task *self,
+                                        Long x) nogil:
+    """Set cache cells of products of X to true where x is a prime number.
+
+    This method works only if have already been called with all prime numbers
+    that are smaller than X.
+    """
+    cdef:
+        Long y
+
+    # Finds the first product of x to be cleared:
+    y = max(x * x,                              # First one from itself
+            self.x_min + x - (self.x_min % x))  # First one in the target range
+    if y >= self.x_max:
+        return STOP_ITERATION  # No more primes to be tested by the caller.
+
+    # This is the most performance critical loop of the algorithm, as you can see
+    # there are no expensive operations here, just sums and vector assignments.
+    while y < self.x_max:
+        self.cache[y - self.x_min] = TRUE  # X is dividend of Y
+        y += x
+    return SUCCESS
+
+
+cdef inline void _task_push_back(_Task *self, Long x) nogil:
+    """Saves one prime number to the result's vector.
+
+    Prime numbers are saved in a strictly ordered manner.
+
+    :param x: one prime number.
+    """
+    self.end[0] = x
+    self.end += 1
+
+
+cdef void _task_execute(_Task *self, const _Task *source) nogil:
+    """Executes one task."""
+    cdef:
+        Long x_max
+        Long* src_it
+        Long* src_end
+        Long y
+        Long x
+
+    x_max = 0
+    while x_max < self.x_max:  # if self == source we need more loops.
+        x_max = self.x_max
+
+        # A: uses prime numbers from source to mark their products as non primes:
+        src_it = source.begin + self.last_cleared
+        src_end = source.end
+        if src_it < src_end:
+            while src_it < src_end:
+                y = src_it[0]
+                if STOP_ITERATION == _task_clear_products(self, y):
+                    break  # Out of bound reached.
+                src_it += 1
+            self.last_cleared = src_it - source.begin
+
+            # On first execution we need more loops:
+            if source == self:
+                x_max = min(x_max, (y * y))
+
+        # B: all elements [x_min, x_max) untouched by step A are prime numbers:
+        x = self.x_min
+        if self.begin < self.end:
+            x = 2 + self.end[-1]  # Continues from previous iteration
+        else:
+            x += (1 - (x % 2))  # If X is even, moves x to the next odd number
+        while x < x_max:
+            if _task_is_prime(self, x):
+                _task_push_back(self, x)
+            x += 2  # Evaluates only odd numbers
+
+# ------------------------------------------------------------------------------
+
+cdef Long _log10(Long x) nogil:
+    cdef:
+        Long y
+        Long z
+    y = 0
+    z = 10
+    while z <= x:
+        z *= 10
+        y += 1
+    return y
+
+def _raise_error(Result result):
+    """Converts an error code to a Python exception."""
+    if result == MEMORY_ERROR:
+        raise MemoryError()
+    elif result == STOP_ITERATION:
+        raise StopIteration()
+    elif result == VALUE_ERROR:
+        raise ValueError()
