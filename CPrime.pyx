@@ -32,7 +32,7 @@ def prime_numbers(Long number,
     :return: a strictly sorted sequence of prime numbers.
     """
     cdef:
-        Result result
+        Result result = SUCCESS
     # Creates and return a prime number generator:
     generator = _PrimeGenerator()
     result = generator.create_tasks(number, max_threads)
@@ -97,8 +97,8 @@ cdef class _PrimeGenerator:
 
     def __next__(self):
         cdef:
-            Long value
-            Result result
+            Long value = 0
+            Result result = SUCCESS
         value = self.next()  # The step is executed by a purely native method.
         if value < 0:
             result = <Result>value
@@ -121,11 +121,11 @@ cdef class _PrimeGenerator:
         - MEMORY_ERROR if a memory allocation failure happened.
         """
         cdef:
-            Long num_tasks
+            Long num_tasks = 0
             _Task* tasks = NULL
-            Long x
-            Long i
-            Long block_size
+            Long x = 0
+            Long i = 0
+            Long block_size = 0
         try:
             if number <= 1:  # Precondition
                 return VALUE_ERROR
@@ -163,8 +163,8 @@ cdef class _PrimeGenerator:
     cdef void clear(self) nogil:
         """Resets the executor status, if needed deallocates all the memory."""
         cdef:
-            _Task* task_it
-            _Task* task_end
+            _Task* task_it = NULL
+            _Task* task_end = NULL
         if self.tasks:
             task_it = self.tasks
             task_end = self.task_end
@@ -188,7 +188,7 @@ cdef class _PrimeGenerator:
         - MEMORY_ERROR: on memory allocation failures.
         """
         cdef:
-            Long result
+            Long result = 0
 
         # If there are no results ready, tries to generate next bunch of
         # prime numbers:
@@ -254,9 +254,9 @@ cdef Result _task_execute_first(_Task *root_task) nogil:
     - MEMORY_ERROR if a memory allocation failure happened.
     """
     cdef:
-        Result result
-        Long x
-        Long i
+        Result result = SUCCESS
+        Long x = 0
+        Long i = 0
 
     # Allocates memory:
     result = _task_alloc(root_task)
@@ -299,9 +299,9 @@ cdef Result _task_execute_group(_Task *task_it,
     - MEMORY_ERROR if a memory allocation failure happened.
     """
     cdef:
-        Long num_threads
-        Long num_failures  # Used to count memory allocation failures.
-        Long i
+        Long num_threads = 0
+        Long num_failures = 0  # Used to count memory allocation failures.
+        Long i = 0
 
     num_threads = min(max_threads,
                       <Long>(task_end - task_it))
@@ -327,9 +327,9 @@ cdef Result _task_alloc(_Task *self) nogil:
     - MEMORY_ERROR on allocation failure
     """
     cdef:
-        Long block_size
-        Long max_results
-        Long num_bytes
+        Long block_size = 0
+        Long max_results = 0
+        Long num_bytes = 0
 
     # Performs one single allocation for the two C arrays to be allocated:
     # - an array containing at most (x_max - x_min) / log10(x_max - x_min) results
@@ -378,7 +378,7 @@ cdef inline Result _task_clear_products(_Task *self,
     that are smaller than X.
     """
     cdef:
-        Long y
+        Long y = 0
 
     # Finds the first product of x to be cleared:
     y = max(x * x,                              # First one from itself
@@ -408,11 +408,11 @@ cdef inline void _task_push_back(_Task *self, Long x) nogil:
 cdef void _task_execute(_Task *self, const _Task *source) nogil:
     """Executes one task."""
     cdef:
-        Long x_max
-        Long* src_it
-        Long* src_end
-        Long y
-        Long x
+        Long x_max = 0
+        Long* src_it = NULL
+        Long* src_end = NULL
+        Long y = 0
+        Long x = 0
 
     x_max = 0
     while x_max < self.x_max:  # if self == source we need more loops.
@@ -448,8 +448,8 @@ cdef void _task_execute(_Task *self, const _Task *source) nogil:
 
 cdef Long _log10(Long x) nogil:
     cdef:
-        Long y
-        Long z
+        Long y = 0
+        Long z = 0
     y = 0
     z = 10
     while z <= x:
