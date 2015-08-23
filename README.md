@@ -29,6 +29,18 @@ The implementations takes advantage of the following:
   constructs from C: structs, malloc/free, base types, static typing.
 
 
+## Compiling extensions
+
+
+You can compile CPrime extensions and its companion CDividends with the
+following command:
+
+
+```sh
+python3 setup.py build_ext --inplace
+```
+
+
 ## Performances
 
 As a benchmark we just type the following inside iPython console.

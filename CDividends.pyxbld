@@ -1,8 +1,0 @@
-def make_ext(modname, file_name):
-    from distutils.extension import Extension
-    return Extension(name=modname,
-                     sources=[file_name],
-                     # include_dirs=[numpy.get_include()],
-                     # libraries=['user32'],
-                     extra_compile_args=['/openmp'],
-                     extra_link_args=['/openmp'])
