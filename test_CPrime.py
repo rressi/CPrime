@@ -9,23 +9,43 @@ from CDividends import find_dividends
 
 
 def prime_numbers_reference(num):
+    """A reference implementation of a prime number generator.
 
+    For num=10**7 it is 105 times slower than CPrime.prime_numbers
+    on a CPU Intel i5 3335S @ 2.7GHz and 4 physical cores.
+
+    More over needs much more memory to be allocated in advance, on
+    an 8Gb machine it can raise a memory error already with num=10**8.
+    """
+    assert(num >= 2)
+
+    # Allocates a buffer of booleans for the range [0, num),
+    # each boolean will tell as if a number is prime or not:
     numbers = [True for x in range(num)]
 
+    # From the range [3, sqrt(num)] we set to false (non prime)
+    # all multiplicand of each number found that is still marked
+    # as prime (we consider only odd numbers):
     k = int(math.sqrt(num))
-    for x in range(2, k + 1):
+    for x in range(3, k + 1, 2):
         if numbers[x]:
-            y = x * x
+            y = x * x   # Multiplicands < x**2 have already been set
             while y < num:
                 numbers[y] = False
-                y += x
+                y += x   # Next multiplicand.
 
-    return [x
-            for x in range(2, num, 1)
-            if numbers[x]]
+    # Now we collect and return all the values for witch a multiplicand
+    # has not been found:
+    result = [2]
+    result.extend(x
+                  for x in range(3, num, 2)
+                  if numbers[x])
+    return result
 
 
 def test_base():
+    """Base unit test for CPrime.prime_numbers()"""
+
     # Up to 10**7 e use a reference (but slow) implementation to test oru
     # fast algorithm:
     for order in range(1, 8):
@@ -58,3 +78,7 @@ def test_prime_number(x):
               dividends[100:],
               '...' if len(dividends) > 100 else '')
         assert False, "{} is not prime".format(x)
+
+
+if __name__ == '__main__':
+    test_base()
