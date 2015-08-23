@@ -5,6 +5,15 @@
 CPrime is a Python extension, written in Cython, that implements a function to
 return all prime numbers below a passed maximum.
 
+```python
+import pyximport;
+pyximport.install()
+import CPrime
+
+for x in CPrime.prime_numbers(10 ** 8):
+  print('{} is prime'.format(x))
+```
+
 The implementations takes advantage of the following:
 - *two order of magnitude faster*: thanks to Cython's' ability to generate
   native it is about 100 times faster than a reference implementation (see
@@ -18,4 +27,3 @@ The implementations takes advantage of the following:
   parallel tasks.
 - *keep it simple*: the code is essentially Python with some borrowed
   constructs from C: structs, malloc/free, base types, static typing.
-
