@@ -31,7 +31,7 @@ The implementations takes advantage of the following:
 
 ## Performances
 
-As a benchmark we just type the following inside an iPython console.
+As a benchmark we just type the following inside iPython console.
 
 ```python
 In[2]: import pyximport; pyximport.install(); import CPrime
@@ -45,7 +45,7 @@ In[4]: %prun CPrime.free_run(10 ** 10)
 
 ### Results:
 
-| CPU | OS | Python | C compiler | 10 ** 9 | 10 ** 10 |
-| ------------------- | ------- | -------- |
+| CPU | OS  | Python | C compiler | 10 ^ 9 | 10 ^ 10 |
+| --- | --- | ------ | ---------- | ------ | ------- |
 | Intel i5-3335S @2.7GHz, 4 cores | Windows 10 | Python 3.4.3 | msvc 10 | 2.871s | 29.139s |
 | Intel i5-3335S @2.7GHz, 4 cores | OSX Yosemite 10.4 | Python 3.4.1 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 5.02s | 52.068s |
