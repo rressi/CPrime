@@ -27,3 +27,25 @@ The implementations takes advantage of the following:
   parallel tasks.
 - *keep it simple*: the code is essentially Python with some borrowed
   constructs from C: structs, malloc/free, base types, static typing.
+
+
+## Performances
+
+As a benchmark we just type the following inside an iPython console.
+
+```python
+In[2]: import pyximport; pyximport.install(); import CPrime
+In[3]: %prun CPrime.free_run(10 ** 9)
+         4 function calls in 2.871 seconds
+       ...
+In[4]: %prun CPrime.free_run(10 ** 10)
+         4 function calls in 29.139 seconds
+       ...
+```
+
+### Results:
+
+| Machine description | 10 ** 9 | 10 ** 10 |
+| ------------------- | ------- | -------- |
+| Intel i5-3335S @2.7GHz, 4 cores; Windows 10; Python 3.4.3; msvc 10 | 2.871 | 29.139 |
+
