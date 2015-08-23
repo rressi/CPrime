@@ -61,3 +61,5 @@ In[4]: %prun CPrime.free_run(10 ** 10)
 | --- | --- | ------ | ---------- | ------ | ------- |
 | Intel i5-3335S @2.7GHz, 4 cores | Windows 10 | Python 3.4.3 | msvc 10 | 2.871s | 29.139s |
 | Intel i5-3335S @2.7GHz, 4 cores | OSX Yosemite 10.4 | Python 3.4.1 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 5.02s | 52.068s |
+| Intel i5-3335S @2.7GHz, 4 cores | Ubuntu 12.04 LTS (virtualized inside  OSX Yosemite 10.4 ) | Python 3.4.0 | gcc 4.8.4 | 4.068s | 39.704 |
+
