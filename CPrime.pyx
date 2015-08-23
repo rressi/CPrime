@@ -248,7 +248,6 @@ ctypedef struct _Task:
     char* cache        # An internal cache containing a boolean for each tested
                        # number (range [x_min, x_max)). The boolean is set to true
                        # when at least one dividend have been found.
-    Long last_cleared  # Position of the last cleared element in the cache
 
 
 cdef Result _task_execute_first(_Task *root_task) nogil:
@@ -350,70 +349,14 @@ cdef Result _task_alloc(_Task *self) nogil:
     max_results = block_size // _log10(block_size)
 
     num_bytes = max_results * sizeof(Long)
-    num_bytes += block_size * sizeof(char)
+    num_bytes += (block_size // 2) * sizeof(char)
     self.begin = <Long *>calloc(1, <size_t>num_bytes)
     if not self.begin:
         return MEMORY_ERROR
     self.end = self.begin
     self.cache = <char *>(self.begin + max_results)
-    self.last_cleared = 0
 
     return SUCCESS
-
-
-cdef void _task_free(_Task *self) nogil:
-    free(self.begin)
-    self.begin = NULL
-    self.end = NULL
-    self.cache = NULL
-
-
-cdef inline Bool _task_is_prime(const _Task *self, Long x) nogil:
-    """Reads from task's cache if X can be a prime number.
-
-    The task must have been executed before and the execution should
-    have covered also X: x_min <= x < x_max.
-    """
-    if <Bool>(self.cache[x - self.x_min]):
-        return FALSE
-    else:
-        return TRUE
-
-
-@cython.cdivision(True)
-cdef inline Result _task_clear_products(_Task *self,
-                                        Long x) nogil:
-    """Set cache cells of products of X to true where x is a prime number.
-
-    This method works only if have already been called with all prime numbers
-    that are smaller than X.
-    """
-    cdef:
-        Long y = 0
-
-    # Finds the first product of x to be cleared:
-    y = max(x * x,                              # First one from itself
-            self.x_min + x - (self.x_min % x))  # First one in the target range
-    if y >= self.x_max:
-        return STOP_ITERATION  # No more primes to be tested by the caller.
-
-    # This is the most performance critical loop of the algorithm, as you can see
-    # there are no expensive operations here, just sums and vector assignments.
-    while y < self.x_max:
-        self.cache[y - self.x_min] = TRUE  # X is dividend of Y
-        y += x
-    return SUCCESS
-
-
-cdef inline void _task_push_back(_Task *self, Long x) nogil:
-    """Saves one prime number to the result's vector.
-
-    Prime numbers are saved in a strictly ordered manner.
-
-    :param x: one prime number.
-    """
-    self.end[0] = x
-    self.end += 1
 
 
 cdef void _task_execute(_Task *self, const _Task *source) nogil:
@@ -425,20 +368,24 @@ cdef void _task_execute(_Task *self, const _Task *source) nogil:
         Long y = 0
         Long x = 0
 
+
     x_max = 0
+    src_it = source.begin
     while x_max < self.x_max:  # if self == source we need more loops.
         x_max = self.x_max
 
         # A: uses prime numbers from source to mark their products as non primes:
-        src_it = source.begin + self.last_cleared
         src_end = source.end
         if src_it < src_end:
+            if src_it[0] == 2:
+                src_it += 1  # Ignores products of 2
+
             while src_it < src_end:
                 y = src_it[0]
                 if STOP_ITERATION == _task_clear_products(self, y):
+                    src_it += 1
                     break  # Out of bound reached.
                 src_it += 1
-            self.last_cleared = src_it - source.begin
 
             # On first execution we need more loops:
             if source == self:
@@ -454,6 +401,76 @@ cdef void _task_execute(_Task *self, const _Task *source) nogil:
             if _task_is_prime(self, x):
                 _task_push_back(self, x)
             x += 2  # Evaluates only odd numbers
+
+
+
+cdef void _task_free(_Task *self) nogil:
+    free(self.begin)
+    self.begin = NULL
+    self.end = NULL
+    self.cache = NULL
+
+
+@cython.cdivision(True)
+cdef inline Bool _task_is_prime(const _Task *self, Long x) nogil:
+    """Reads from task's cache if X can be a prime number.
+
+    The task must have been executed before and the execution should
+    have covered also X: x_min <= x < x_max.
+    """
+    cdef:
+        Long offset = 0
+    offset = (x - self.x_min) // 2
+    if <Bool>(self.cache[offset]):
+        return FALSE
+    else:
+        return TRUE
+
+
+@cython.cdivision(True)
+cdef inline Result _task_clear_products(_Task *self,
+                                        Long x) nogil:
+    """Set cache cells of products of X to true where x is a prime number.
+
+    This method works only if have already been called with all prime numbers
+    that are smaller than X.
+    """
+    cdef:
+        Long y = 0
+        Long off = 0
+        Long off_min = 0
+        Long off_max = 0
+        Long off_step = 0
+
+    y = max(x * x,  # Smaller products have already been cleared
+            self.x_min + x - (self.x_min % x))  # First product in the range
+    if y >= self.x_max:
+        return STOP_ITERATION  # No more primes to be tested by the caller.
+    if y % 2 == 0:
+        y += x  # Only odd products
+
+    # This is the most performance critical loop of the algorithm, as you can see
+    # there are no expensive operations here, just sums and vector assignments.
+    off = (y - self.x_min) // 2
+    off_max = (self.x_max - self.x_min) // 2
+    off_step = x
+    while off < off_max:
+        self.cache[off] = TRUE  # X is dividend of Y
+        off += off_step
+
+    return SUCCESS
+
+
+cdef inline void _task_push_back(_Task *self, Long x) nogil:
+    """Saves one prime number to the result's vector.
+
+    Prime numbers are saved in a strictly ordered manner.
+
+    :param x: one prime number.
+    """
+
+    self.end[0] = x
+    self.end += 1
 
 # ------------------------------------------------------------------------------
 
