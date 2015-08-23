@@ -1,9 +1,12 @@
 import itertools
 import math
 import random
-import pyximport
 
-pyximport.install()
+# Uncomment these 2 lines in order to have dynamic generation of
+# Cython extensions:
+#  import pyximport
+#  pyximport.install()
+
 from CPrime import prime_numbers, free_run
 from CDividends import find_dividends
 
