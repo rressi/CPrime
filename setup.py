@@ -9,6 +9,9 @@ extra_link_args = []
 if platform.system() == 'Linux':
     extra_compile_args.append('-fopenmp')
     extra_link_args.append('-fopenmp')
+elif platform.system() == 'Windows':
+    extra_compile_args.append('/openmp')
+    extra_link_args.append('/openmp')
 
 ext_modules = [Extension(name,
                          [name + '.pyx'],
