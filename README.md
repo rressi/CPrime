@@ -54,13 +54,13 @@ timeit.timeit('import CPrime; CPrime.free_run(10**10)', number=1)
 
 ### Results:
 
-| CPU | Host OS | Guest OS | Python | C compiler | 10 ^ 9 | 10 ^ 10 |
-| --- | ------- | -------- | ------ | ---------- | ------ | ------- |
-| Intel i5-3335S @2.7GHz, 4 cores | Windows 10 | - | Python 3.4.3 | msvc 10 | 1.119s | 11.730s |
-| Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | - | Python 3.4.1 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 2.904s | 30.561s |
-| Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | - | Python 2.7.2 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 3.021s | 30.884s |
-| Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | Ubuntu 12.04 | Python 3.4.0 | gcc 4.8.2 | 3.039s | 29.191 |
-| Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | Ubuntu 12.04 | Python 2.7.6 | gcc 4.8.2 | 3.032s | 30.700 |
-| Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | Ubuntu 14.04 | Python 3.4.3 | gcc 4.9.2 | 2.217 | 21.193 |
-| Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | Ubuntu 14.04 | Python 2.7.9 | gcc 4.9.2 | 2.294 | 22.380 |
+| Tag  | CPU | Host OS | Guest OS | Python | C compiler | 10 ^ 9 | 10 ^ 10 |
+| ---- | --- | ------- | -------- | ------ | ---------- | ------ | ------- |
+| v0.2 | Intel i5-3335S @2.7GHz, 4 cores | Windows 10 | - | Python 3.4.3 | msvc 10 | 1.119s | 11.730s |
+| v0.1 | Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | - | Python 3.4.1 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 2.904s | 30.561s |
+| v0.1 | Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | - | Python 2.7.2 | Apple LLVM 6.1.0 (LLVM 3.6) **no OpenMP** | 3.021s | 30.884s |
+| v0.1 | Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | Ubuntu 12.04 | Python 3.4.0 | gcc 4.8.2 | 3.039s | 29.191 |
+| v0.1 | Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | Ubuntu 12.04 | Python 2.7.6 | gcc 4.8.2 | 3.032s | 30.700 |
+| v0.1 | Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | Ubuntu 14.04 | Python 3.4.3 | gcc 4.9.2 | 2.217 | 21.193 |
+| v0.1 | Intel i5-3335S @2.7GHz, 4 cores | OSX 10.10.4 | Ubuntu 14.04 | Python 2.7.9 | gcc 4.9.2 | 2.294 | 22.380 |
 
