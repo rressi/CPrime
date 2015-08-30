@@ -47,6 +47,7 @@ As a benchmark we execute the following in a python console:
 
 ```python
 import timeit
+import CPrime
 timeit.timeit('import CPrime; CPrime.free_run(10**9)', number=1)
 timeit.timeit('import CPrime; CPrime.free_run(10**10)', number=1)
 ```
