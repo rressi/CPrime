@@ -359,6 +359,7 @@ cdef Result _task_alloc(_Task *self) nogil:
     return SUCCESS
 
 
+@cython.cdivision(True)
 cdef void _task_execute(_Task *self, const _Task *source) nogil:
     """Executes one task."""
     cdef:
@@ -367,7 +368,10 @@ cdef void _task_execute(_Task *self, const _Task *source) nogil:
         Long* src_end = NULL
         Long y = 0
         Long x = 0
-
+        char* cache_begin = NULL
+        char* cache_it = NULL
+        char* cache_end = NULL
+        Long* dst_it
 
     x_max = 0
     src_it = source.begin
@@ -397,34 +401,25 @@ cdef void _task_execute(_Task *self, const _Task *source) nogil:
             x = 2 + self.end[-1]  # Continues from previous iteration
         else:
             x += (1 - (x % 2))  # If X is even, moves x to the next odd number
-        while x < x_max:
-            if _task_is_prime(self, x):
-                _task_push_back(self, x)
-            x += 2  # Evaluates only odd numbers
-
+        cache_begin = self.cache
+        cache_it    = cache_begin + (x     - self.x_min) // 2
+        cache_end   = cache_begin + (x_max - self.x_min) // 2
+        dst_it = self.end
+        while cache_it < cache_end:
+            if not cache_it[0]:
+                dst_it[0] = x  # Prime number found!
+                dst_it += 1
+            cache_it += 1
+            x += 2
+        self.end = dst_it
 
 
 cdef void _task_free(_Task *self) nogil:
+    """Frees buffers allocated for one task."""
     free(self.begin)
     self.begin = NULL
     self.end = NULL
     self.cache = NULL
-
-
-@cython.cdivision(True)
-cdef inline Bool _task_is_prime(const _Task *self, Long x) nogil:
-    """Reads from task's cache if X can be a prime number.
-
-    The task must have been executed before and the execution should
-    have covered also X: x_min <= x < x_max.
-    """
-    cdef:
-        Long offset = 0
-    offset = (x - self.x_min) // 2
-    if <Bool>(self.cache[offset]):
-        return FALSE
-    else:
-        return TRUE
 
 
 @cython.cdivision(True)
@@ -437,10 +432,8 @@ cdef inline Result _task_clear_products(_Task *self,
     """
     cdef:
         Long y = 0
-        Long off = 0
-        Long off_min = 0
-        Long off_max = 0
-        Long off_step = 0
+        char *cache_it = NULL
+        char *cache_end = NULL
 
     y = max(x * x,  # Smaller products have already been cleared
             self.x_min + x - (self.x_min % x))  # First product in the range
@@ -450,13 +443,14 @@ cdef inline Result _task_clear_products(_Task *self,
         y += x  # Only odd products
 
     # This is the most performance critical loop of the algorithm, as you can see
-    # there are no expensive operations here, just sums and vector assignments.
-    off = (y - self.x_min) // 2
-    off_max = (self.x_max - self.x_min) // 2
-    off_step = x
-    while off < off_max:
-        self.cache[off] = TRUE  # X is dividend of Y
-        off += off_step
+    # there are no expensive operations here, just sums and pointer assignments.
+    cache_it = self.cache
+    cache_it += (y - self.x_min) // 2
+    cache_end = self.cache
+    cache_end += (self.x_max - self.x_min) // 2
+    while cache_it < cache_end:
+        cache_it[0] = TRUE  # X is dividend of Y
+        cache_it += x  # Would be (X * 2) // 2 -> X
 
     return SUCCESS
 
