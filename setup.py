@@ -21,4 +21,5 @@ ext_modules = [Extension(name,
 
 setup(name='CPrime, fast prime numbers generator',
       cmdclass={'build_ext': build_ext},
-      ext_modules=ext_modules)
+      ext_modules=ext_modules,
+      requires=['cython'])
